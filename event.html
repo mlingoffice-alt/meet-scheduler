@@ -17,7 +17,6 @@
       --muted2: rgba(255,255,255,.55);
       --primary: #6EA8FE;
       --good: #34D399;
-      --warn: #FBBF24;
     }
     body{
       color:var(--text);
@@ -38,6 +37,7 @@
     }
     .muted{color:var(--muted)}
     .muted2{color:var(--muted2)}
+    .mono{font-family: ui-monospace, Menlo, Consolas, monospace;}
 
     #loading{
       position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
@@ -83,18 +83,57 @@
       border-color: rgba(255,255,255,.34) !important;
     }
 
+    /* ===== 表格在手機不跑版 ===== */
+    .table-wrap{
+      border-radius: 16px;
+      overflow:hidden;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+    }
+    table{
+      width:100%;
+      margin:0;
+      table-layout: fixed;              /* ✅ 重要：固定欄寬避免跑版 */
+    }
+    thead th{
+      padding: 10px 8px !important;
+      font-size: .92rem;
+      color: var(--text);
+      background: rgba(255,255,255,.06);
+      border-bottom: 1px solid rgba(255,255,255,.12);
+    }
+    tbody td{
+      padding: 8px 6px !important;      /* ✅ 統一 padding */
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+    tbody tr:last-child td{border-bottom:none;}
+
+    /* 日期欄固定寬 */
+    .col-date{
+      width: 38%;
+    }
+
+    /* 時段欄平均分配 */
+    .col-slot{
+      width: auto;
+    }
+
     /* ===== iPhone 可點的格子：label 包 input（最穩） ===== */
     .cell-label{
       position: relative;
       display:flex;
       align-items:center;
       justify-content:center;
-      min-height: 44px;              /* iOS 建議可點高度 */
+      min-height: 44px;                 /* ✅ iOS 建議點擊高度 */
+      width: 100%;
+      box-sizing: border-box;
       border-radius: 14px;
       background: rgba(255,255,255,.92);
       border: 1px solid rgba(255,255,255,.72);
-      color: rgba(0,0,0,.88);        /* ✅ 深色字 */
-      font-weight: 700;
+      color: rgba(0,0,0,.88);           /* ✅ 深色字 */
+      font-weight: 800;
+      line-height: 1;
+      white-space: nowrap;
       user-select:none;
       -webkit-tap-highlight-color: transparent;
       overflow:hidden;
@@ -103,7 +142,7 @@
     .cell-label input{
       position:absolute;
       inset:0;
-      opacity:0;                     /* ✅ 隱藏但保留實體（iPhone 才能點） */
+      opacity:0;                        /* ✅ 隱藏但保留實體 */
       margin:0;
       width:100%;
       height:100%;
@@ -112,12 +151,15 @@
     .cell-label.checked{
       background: rgba(52,211,153,.95);
       border-color: rgba(52,211,153,1);
-      color: rgba(0,0,0,.90);        /* ✅ 勾選後也深色 */
+      color: rgba(0,0,0,.92);
     }
 
-    table{color:var(--text)}
-    th, td{vertical-align: middle !important;}
-    .mono{font-family: ui-monospace, Menlo, Consolas, monospace;}
+    /* 小螢幕字更緊湊 */
+    @media (max-width: 420px){
+      .col-date{width: 44%;}
+      thead th{font-size:.88rem}
+      .cell-label{border-radius: 12px}
+    }
   </style>
 </head>
 
@@ -143,7 +185,7 @@
 
           <hr class="border-light opacity-25 my-4">
 
-          <!-- Step 1: 輸入暱稱 -->
+          <!-- Step 1 -->
           <div id="stepLogin">
             <div class="fw-semibold mb-2">你的暱稱</div>
             <input id="nicknameInput" class="form-control form-control-lg" placeholder="例如：小美">
@@ -151,7 +193,7 @@
             <div class="muted2 small mt-2">暱稱用來統計誰可以/誰不行。</div>
           </div>
 
-          <!-- Step 2: 暱稱重複提示 -->
+          <!-- Step 2 -->
           <div id="stepConfirm" style="display:none;">
             <div class="alert alert-warning">
               <div class="fw-bold">這個暱稱已有人使用，若是你本人請繼續，否則換一個暱稱</div>
@@ -163,27 +205,28 @@
             </div>
           </div>
 
-          <!-- Step 3: 勾選格子 -->
+          <!-- Step 3 -->
           <div id="stepFill" style="display:none;">
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
               <div class="muted">填寫人：<span id="displayNick" class="fw-bold"></span></div>
               <button class="btn btn-success rounded-pill px-4" id="btnSave">儲存我的時間</button>
             </div>
 
-            <div class="table-responsive">
-              <table class="table table-borderless align-middle" style="min-width:760px;">
-                <thead>
-                  <tr id="thead">
-                    <th class="muted">日期</th>
-                  </tr>
-                </thead>
-                <tbody id="tbody"></tbody>
-              </table>
+            <div class="table-wrap">
+              <div class="table-responsive">
+                <table class="table table-borderless align-middle">
+                  <thead>
+                    <tr id="thead">
+                      <th class="col-date muted">日期</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tbody"></tbody>
+                </table>
+              </div>
             </div>
 
-            <div class="muted2 small">點格子＝可，再點一次取消。</div>
+            <div class="muted2 small mt-2">點格子＝可，再點一次取消。</div>
           </div>
-
         </div>
       </div>
     </div>
@@ -221,15 +264,15 @@
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
   }
   function ymdLabel(ymd){
-    const parts = ymd.split("-");
-    return `${parseInt(parts[1],10)}/${parseInt(parts[2],10)}`;
+    const p = ymd.split("-");
+    return `${parseInt(p[1],10)}/${parseInt(p[2],10)}`;
   }
 
   async function apiPost(payload){
     const res = await fetch(API_URL, {
       method: "POST",
       redirect: "follow",
-      headers: { "Content-Type": "text/plain;charset=utf-8" }, // ✅ 你的 GAS 需要這個
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify(payload)
     });
     const data = await res.json();
@@ -270,7 +313,8 @@
   }
 
   function clearTable(){
-    document.getElementById("thead").innerHTML = `<th class="muted">日期</th>`;
+    const thead = document.getElementById("thead");
+    thead.innerHTML = `<th class="col-date muted">日期</th>`;
     document.getElementById("tbody").innerHTML = "";
   }
 
@@ -281,7 +325,7 @@
     const thead = document.getElementById("thead");
     slots.forEach(slot=>{
       const th = document.createElement("th");
-      th.className = "text-center muted";
+      th.className = "text-center muted col-slot";
       th.textContent = slot;
       thead.appendChild(th);
     });
@@ -295,6 +339,7 @@
 
     const tbody = document.getElementById("tbody");
     let guard=0;
+
     for(let d=new Date(s); d<=e; d.setDate(d.getDate()+1)){
       guard++; if(guard>366) break;
 
@@ -302,6 +347,7 @@
       const tr = document.createElement("tr");
 
       const tdDate = document.createElement("td");
+      tdDate.className = "col-date";
       tdDate.innerHTML = `<div class="fw-semibold">${ymdLabel(ymd)}</div><div class="muted2 small mono">${ymd}</div>`;
       tr.appendChild(tdDate);
 
@@ -310,9 +356,7 @@
         const checked = initialKeys.includes(key);
 
         const td = document.createElement("td");
-        td.className = "text-center";
-
-        // ✅ label 包住 input（iPhone 最穩），而且字是深色
+        td.className = "text-center col-slot";
         td.innerHTML = `
           <label class="cell-label ${checked ? "checked" : ""}">
             <input type="checkbox" value="${key}" ${checked ? "checked" : ""}>
@@ -320,7 +364,6 @@
           </label>
         `;
 
-        // 讓背景跟勾選同步（不靠 :checked，iOS 也穩）
         const input = td.querySelector("input");
         const label = td.querySelector("label");
         input.addEventListener("change", ()=> {
@@ -383,7 +426,6 @@
       if(data.error) throw new Error(data.error);
 
       alert("已儲存！");
-      // 存完自動去統計
       const base = location.href.split("/").slice(0,-1).join("/");
       location.href = `${base}/results.html?eventId=${encodeURIComponent(eventId)}`;
     }catch(err){
@@ -394,7 +436,6 @@
     }
   }
 
-  // 綁定按鈕
   document.getElementById("btnStart").addEventListener("click", checkNickname);
   document.getElementById("btnChangeNick").addEventListener("click", ()=>{
     document.getElementById("stepConfirm").style.display="none";
@@ -403,7 +444,6 @@
   document.getElementById("btnUseNick").addEventListener("click", proceedToFill);
   document.getElementById("btnSave").addEventListener("click", saveAvailability);
 
-  // 啟動
   loadEvent();
 </script>
 </body>
